@@ -201,6 +201,7 @@ body{font-family:'Lato',sans-serif;font-size:13px;color:var(--tx);background:var
    <div class="ns">Dossiers</div>
    <div class="ni" onclick="swV('recouvrement',this)"><i class="ti ti-file-invoice"></i>Recouvrement<span class="nb" id="b-rec">0</span></div>
    <div class="ni" onclick="swV('management',this)"><i class="ti ti-users"></i>Management<span class="nb" id="b-man">0</span></div>
+   <div class="ni" id="sb-adv-link" style="display:none" onclick="goKar()"><i class="ti ti-folder-heart"></i>Espace ADV<span class="nb" id="b-adv-kar">0</span></div>
    <div class="at" onclick="tArch()"><div class="atl">Archives</div><i class="ti ti-chevron-down" id="arch-chev" style="font-size:11px;color:rgba(255,255,255,.3);transition:transform .25s"></i></div>
    <div class="ac" id="arch-c">
     <div class="ni" onclick="swV('arch-acq',this)"><i class="ti ti-archive"></i>Acquéreurs<span class="nb" id="b-aacq">0</span></div>
@@ -265,6 +266,7 @@ body{font-family:'Lato',sans-serif;font-size:13px;color:var(--tx);background:var
    <div class="ni active" id="k-ni-c" onclick="kSwV('cours',this)"><i class="ti ti-folder-open"></i>Dossiers en cours<span class="nb" id="k-b-c">0</span></div>
    <div class="at" onclick="kTArch()"><div class="atl">Archives</div><i class="ti ti-chevron-down" id="k-arch-chev" style="font-size:11px;color:rgba(255,255,255,.3);transition:transform .25s"></i></div>
    <div class="ac" id="k-arch-c"><div class="ni" onclick="kSwV('arch',this)"><i class="ti ti-archive"></i>Dossiers archivés<span class="nb" id="k-b-a">0</span></div></div>
+   <div id="sb-kar-back" style="display:none;padding:6px 6px 0"><hr class="sep"><div class="ni" onclick="ss('s-app')"><i class="ti ti-arrow-left"></i>Retour tableau de bord</div></div>
    <div class="sbb"><button class="bi" onclick="ss('s-login')"><i class="ti ti-logout"></i></button></div>
   </div>
   <div style="flex:1;display:flex;overflow:hidden">
@@ -328,6 +330,7 @@ var TEAMS={
     {name:"Gregory Valentin",i:"GV"}
   ],
   sud:[
+    {name:"Luc Peinturier",i:"LM",isDR:true},
     {name:"Sebastien Maherault",i:"SM"},
     {name:"Karine Chevalier",i:"KC",isK:true}
   ]
@@ -337,7 +340,7 @@ var TEAMS={
 var DB={acquereurs:[],farine:[],recouvrement:[],management:[]};
 var ARCH={acquereurs:[],farine:[],recouvrement:[],management:[]};
 var KDB=[],KARCH=[],COMM=[];
-var ST={dr:null,isDG:false,isAdmin:false,mod:'acquereurs',sel:null,archOpen:false,sortAcq:'date',sortFar:'date',archMod:null};
+var ST={dr:null,isDG:false,isAdmin:false,isDRSud:false,user:null,mod:'acquereurs',sel:null,archOpen:false,sortAcq:'date',sortFar:'date',archMod:null};
 var KST={sel:null,zone:null,archOpen:false};
 var _pcf=null,_mcs=[],_ks=[];
 
@@ -395,9 +398,10 @@ function xlsxE(ff,pf){
 
 /* ─── LOGIN ─── */
 function enterDG(){
-  ST.isDG=true;ST.isAdmin=false;ST.dr='dg';
+  ST.isDG=true;ST.isAdmin=false;ST.isDRSud=false;ST.dr='dg';ST.user='David Bourgeois';
   setSBUser('DB','David Bourgeois','Direction Générale',false);
   document.getElementById('sb-admin').style.display='none';
+  document.getElementById('sb-adv-link').style.display='none';
   ss('s-app');swV('acquereurs',document.querySelector('#s-app .ni'));
 }
 function selDR(dr){
@@ -407,7 +411,6 @@ function selDR(dr){
   for(var i=0;i<team.length;i++){
     var m=team[i];
     if(m.isAdmin){
-      /* Carte Hedi — admin distinct, en tête de liste */
       h+='<div class="lca" onclick="enterAdmin(\''+dr+'\',\''+m.name+'\',\''+m.i+'\')">';
       h+='<div style="display:flex;align-items:center;gap:10px">';
       h+='<div class="dri" style="background:var(--gold-lt);color:var(--gold);margin:0;flex-shrink:0"><i class="ti ti-shield-check"></i></div>';
@@ -417,34 +420,64 @@ function selDR(dr){
       h+='<div class="cg2" id="cdv-grid-'+dr+'">';
     } else if(m.isK){
       h+='<div class="cc" onclick="enterKarine()"><div class="cav">'+m.i+'</div><div style="font-size:12px;font-weight:700;color:var(--tx)">'+m.name+'</div><div style="font-size:9px;color:var(--gold);margin-top:2px;font-weight:700">ADV</div></div>';
+    } else if(m.isDR){
+      h+='<div class="cc" onclick="enterDRSud(\''+m.name+'\',\''+m.i+'\')"><div class="cav" style="background:var(--bd-mid)">'+m.i+'</div><div style="font-size:12px;font-weight:700;color:var(--tx)">'+m.name+'</div><div style="font-size:9px;color:var(--bd);margin-top:2px;font-weight:700">Directeur Régional</div></div>';
     } else {
       h+='<div class="cc" onclick="enterAs(\''+dr+'\',\''+m.name+'\',\''+m.i+'\')"><div class="cav">'+m.i+'</div><div style="font-size:12px;font-weight:700;color:var(--tx)">'+m.name+'</div><div style="font-size:9px;color:var(--tx3);margin-top:2px">Chef des ventes</div></div>';
     }
   }
-  if(dr==='nord')h+='</div>'; /* fermer cg2 pour nord */
+  if(dr==='nord'||dr==='sud')h+='</div>';
   document.getElementById('cdv-list').innerHTML=h;
   ss('s-cdv');
 }
 function enterAdmin(dr,name,initials){
-  ST.isAdmin=true;ST.isDG=true;ST.dr='dg'; /* accès complet toutes DR */
+  ST.isAdmin=true;ST.isDG=true;ST.isDRSud=false;ST.dr='dg';ST.user=name;
   setSBUser(initials,name,'Administrateur',true);
   document.getElementById('sb-admin').style.display='block';
+  document.getElementById('sb-adv-link').style.display='none';
   ss('s-app');swV('acquereurs',document.querySelector('#s-app .ni'));
+}
+function enterDRSud(name,initials){
+  ST.isDRSud=true;ST.isDG=false;ST.isAdmin=false;ST.dr='sud';ST.user=name;
+  setSBUser(initials,name,'Directeur Régional Sud',false);
+  document.getElementById('sb-admin').style.display='none';
+  document.getElementById('sb-adv-link').style.display='flex';
+  ss('s-app');swV('acquereurs',document.querySelector('#s-app .ni'));
+  uBadgeKar();
 }
 function enterAs(dr,name,initials){
-  ST.dr=dr;ST.isDG=false;ST.isAdmin=false;
+  ST.dr=dr;ST.isDG=false;ST.isAdmin=false;ST.isDRSud=false;ST.user=name;
   setSBUser(initials,name,'Chef des ventes',false);
   document.getElementById('sb-admin').style.display='none';
+  document.getElementById('sb-adv-link').style.display='none';
   ss('s-app');swV('acquereurs',document.querySelector('#s-app .ni'));
 }
-function enterKarine(){ss('s-kar');kSwV('cours',document.getElementById('k-ni-c'));}
+function goKar(){
+  /* Luc accède à s-kar depuis s-app */
+  document.getElementById('sb-kar-back').style.display='block';
+  ss('s-kar');
+  kSwV('cours',document.getElementById('k-ni-c'));
+}
+function uBadgeKar(){
+  var el=document.getElementById('b-adv-kar');
+  if(el)el.textContent=KDB.length;
+}
+function enterKarine(){ss('s-kar');document.getElementById('sb-kar-back').style.display='none';kSwV('cours',document.getElementById('k-ni-c'));}
 function setSBUser(initials,name,role,isAdmin){
   document.getElementById('sb-user').innerHTML='<div class="av">'+initials+'</div><div><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.9)">'+name+'</div><div style="font-size:9px;color:rgba(255,255,255,.4)">'+role+'</div>'+(isAdmin?'<span class="sbu-badge">ADMIN</span>':'')+'</div>';
 }
 
 function tArch(){ST.archOpen=!ST.archOpen;document.getElementById('arch-c').classList.toggle('open',ST.archOpen);document.getElementById('arch-chev').style.transform=ST.archOpen?'rotate(180deg)':'';}
-/* drf : admin/DG voient tout, CDV voient leur DR */
-function drf(arr){if(ST.isDG)return arr;return arr.filter(function(c){return !c.dr||c.dr===ST.dr;});}
+/* drf : filtre selon le profil connecté
+   - Admin/DG → tout
+   - DR Sud (Luc) → fiches dr==='sud'
+   - CDV → uniquement ses propres fiches (createdBy === ST.user)
+*/
+function drf(arr){
+  if(ST.isDG)return arr;
+  if(ST.isDRSud)return arr.filter(function(c){return c.dr==='sud';});
+  return arr.filter(function(c){return c.createdBy===ST.user;});
+}
 
 /* ─── VUES ─── */
 function swV(v,el){
@@ -598,19 +631,23 @@ function rMCS(){
 function oMod(){
   var m=ST.mod;var lbls={acquereurs:'Acquéreurs',farine:'Prospects farine',recouvrement:'Recouvrement',management:'Management'};
   document.getElementById('m-fiche-h').textContent='Nouvelle fiche — '+lbls[m];
+  /* Champ "Créer pour" uniquement pour Luc (DR Sud) */
+  var pourLuc=ST.isDRSud?'<div class="fr"><label>Créer pour</label><select id="f-pour"><option value="'+ST.user+'" selected>Moi-même ('+ST.user+')</option><option value="Sebastien Maherault">Sebastien Maherault</option></select></div>':'';
   var f='';
-  if(m==='acquereurs')f='<div class="fg2"><div class="fr"><label>Nom *</label><input id="f-n"></div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Commercial 1</label>'+cSel('f-c1')+'</div><div class="fr"><label>Commercial 2</label>'+cSel('f-c2')+'</div><div class="fg2"><div class="fr"><label>Secteur</label><input id="f-se"></div><div class="fr"><label>Apport (€)</label><input id="f-ap" type="number"></div></div><div class="fr"><label>Notes</label><textarea id="f-no"></textarea></div>';
-  else if(m==='farine')f='<div class="fg2"><div class="fr"><label>Nom *</label><input id="f-n"></div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Commercial 1</label>'+cSel('f-c1')+'</div><div class="fr"><label>Commercial 2</label>'+cSel('f-c2')+'</div><div class="fg2"><div class="fr"><label>Meunier</label><input id="f-me"></div><div class="fr"><label>Quintaux/mois</label><input id="f-qu" type="number"></div></div><div class="fr"><label>Notes</label><textarea id="f-no"></textarea></div>';
-  else if(m==='recouvrement')f='<div class="fg2"><div class="fr"><label>Client *</label><input id="f-n"></div><div class="fr"><label>Commercial</label>'+cSel('f-co')+'</div></div><div class="fr"><label>Situation</label><input id="f-si"></div><div class="fg2"><div class="fr"><label>Encours (€)</label><input id="f-en" type="number"></div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Notes</label><textarea id="f-no"></textarea></div>';
-  else{_mcs=[];f='<div class="fg2"><div class="fr"><label>Commercial *</label>'+cSel('f-n')+'</div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Projet / Situation</label><textarea id="f-no"></textarea></div><div style="padding-top:10px;border-top:1px solid var(--brd);margin-top:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--bd);text-transform:uppercase;letter-spacing:.07em">Étapes de suivi</div><button type="button" class="btn btn-xs" onclick="addMCS()"><i class="ti ti-plus"></i> Étape</button></div><div id="mcs-builder"></div></div>';}
+  if(m==='acquereurs')f=pourLuc+'<div class="fg2"><div class="fr"><label>Nom *</label><input id="f-n"></div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Commercial 1</label>'+cSel('f-c1')+'</div><div class="fr"><label>Commercial 2</label>'+cSel('f-c2')+'</div><div class="fg2"><div class="fr"><label>Secteur</label><input id="f-se"></div><div class="fr"><label>Apport (€)</label><input id="f-ap" type="number"></div></div><div class="fr"><label>Notes</label><textarea id="f-no"></textarea></div>';
+  else if(m==='farine')f=pourLuc+'<div class="fg2"><div class="fr"><label>Nom *</label><input id="f-n"></div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Commercial 1</label>'+cSel('f-c1')+'</div><div class="fr"><label>Commercial 2</label>'+cSel('f-c2')+'</div><div class="fg2"><div class="fr"><label>Meunier</label><input id="f-me"></div><div class="fr"><label>Quintaux/mois</label><input id="f-qu" type="number"></div></div><div class="fr"><label>Notes</label><textarea id="f-no"></textarea></div>';
+  else if(m==='recouvrement')f=pourLuc+'<div class="fg2"><div class="fr"><label>Client *</label><input id="f-n"></div><div class="fr"><label>Commercial</label>'+cSel('f-co')+'</div></div><div class="fr"><label>Situation</label><input id="f-si"></div><div class="fg2"><div class="fr"><label>Encours (€)</label><input id="f-en" type="number"></div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Notes</label><textarea id="f-no"></textarea></div>';
+  else{_mcs=[];f=pourLuc+'<div class="fg2"><div class="fr"><label>Commercial *</label>'+cSel('f-n')+'</div><div class="fr"><label>Priorité</label><select id="f-p"><option value="h">Haute</option><option value="m" selected>Moyenne</option><option value="l">Basse</option></select></div></div><div class="fr"><label>Projet / Situation</label><textarea id="f-no"></textarea></div><div style="padding-top:10px;border-top:1px solid var(--brd);margin-top:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--bd);text-transform:uppercase;letter-spacing:.07em">Étapes de suivi</div><button type="button" class="btn btn-xs" onclick="addMCS()"><i class="ti ti-plus"></i> Étape</button></div><div id="mcs-builder"></div></div>';}
   document.getElementById('m-fiche-f').innerHTML=f;if(m==='management')rMCS();oM('m-fiche');
 }
 function sCard(){
   var nameEl=document.getElementById('f-n');var name=(nameEl?nameEl.value:'').trim();if(!name){alert('Le nom est requis.');return;}
   var m=ST.mod;var pEl=document.getElementById('f-p');var noEl=document.getElementById('f-no');
-  /* DR de la fiche : pour admin/DG on garde 'dg' comme indicateur global */
-  var cardDR=ST.isDG?'dg':ST.dr;
-  var card={id:'c'+Date.now(),name:name,step:0,stepsData:{},stepsCompleted:[],priority:pEl?pEl.value:'m',notes:noEl?noEl.value:'',createdAt:new Date().toISOString(),archived:false,dr:cardDR};
+  var cardDR=ST.isDG?'dg':ST.isDRSud?'sud':ST.dr;
+  /* Luc peut créer pour Sebastien */
+  var pourEl=document.getElementById('f-pour');
+  var createdBy=pourEl?pourEl.value:ST.user;
+  var card={id:'c'+Date.now(),name:name,step:0,stepsData:{},stepsCompleted:[],priority:pEl?pEl.value:'m',notes:noEl?noEl.value:'',createdAt:new Date().toISOString(),archived:false,dr:cardDR,createdBy:createdBy};
   if(m==='acquereurs'){var c1=document.getElementById('f-c1'),c2=document.getElementById('f-c2'),se=document.getElementById('f-se'),ap=document.getElementById('f-ap');card.comm1=c1?c1.value:'';card.comm2=c2?c2.value:'';card.secteur=se?se.value:'';card.apport=ap?ap.value:'';}
   else if(m==='farine'){var c1b=document.getElementById('f-c1'),c2b=document.getElementById('f-c2'),me=document.getElementById('f-me'),qu=document.getElementById('f-qu');card.comm1=c1b?c1b.value:'';card.comm2=c2b?c2b.value:'';card.meunier=me?me.value:'';card.quintaux=qu?qu.value:'';}
   else if(m==='recouvrement'){var co=document.getElementById('f-co'),si=document.getElementById('f-si'),en=document.getElementById('f-en');card.commercial=co?co.value:'';card.situation=si?si.value:'';card.encours=en?en.value:'';}
@@ -751,7 +788,7 @@ function kRBoard(){
   kUB();
 }
 function kRA(){var list=document.getElementById('k-list-a');document.getElementById('k-arch-count').textContent=KARCH.length;if(!KARCH.length){list.innerHTML='<div style="text-align:center;color:var(--tx3);padding:20px;font-size:12px">Aucun dossier archivé</div>';return;}var h='';for(var i=0;i<KARCH.length;i++){var c=KARCH[i];var done=(c.stepsCompleted||[]).length;h+='<div class="akc" onclick="kODP(\''+c.id+'\',\'arch\')"><div style="display:flex;justify-content:space-between"><div><div style="font-size:12px;font-weight:700">'+c.sujet+'</div>'+(c.adv?'<div style="font-size:10px;color:var(--tx3)">👤 '+c.adv+'</div>':'')+'<div style="font-size:9px;color:var(--tx3)">'+fd(c.createdAt)+'</div></div><span class="tg tarch">'+done+'/'+c.steps.length+'</span></div></div>';}list.innerHTML=h;}
-function kUB(){document.getElementById('k-b-c').textContent=KDB.length;document.getElementById('k-b-a').textContent=KARCH.length;document.getElementById('k-st').textContent=KDB.length;document.getElementById('k-sec').textContent=KDB.filter(function(c){return c.steps.length>0&&(c.stepsCompleted||[]).length<c.steps.length;}).length;document.getElementById('k-sfi').textContent=KDB.filter(function(c){return c.steps.length>0&&(c.stepsCompleted||[]).length===c.steps.length;}).length;}
+function kUB(){document.getElementById('k-b-c').textContent=KDB.length;document.getElementById('k-b-a').textContent=KARCH.length;document.getElementById('k-st').textContent=KDB.length;document.getElementById('k-sec').textContent=KDB.filter(function(c){return c.steps.length>0&&(c.stepsCompleted||[]).length<c.steps.length;}).length;document.getElementById('k-sfi').textContent=KDB.filter(function(c){return c.steps.length>0&&(c.stepsCompleted||[]).length===c.steps.length;}).length;uBadgeKar();}
 function kODP(id,zone){var src=zone==='arch'?KARCH:KDB;var card=src.find(function(c){return c.id===id;});if(!card)return;KST.sel=card;KST.zone=zone;document.getElementById('k-dp').classList.add('open');document.getElementById('k-dp-t').textContent=card.sujet;document.getElementById('k-dp-d').textContent='Créé le '+fd(card.createdAt);document.getElementById('k-dp-adv').textContent=card.adv?'👤 '+card.adv:'';kRDS();}
 function kRDS(){
   var c=KST.sel;if(!c)return;var total=c.steps.length;var done=(c.stepsCompleted||[]).length;
