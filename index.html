@@ -500,10 +500,11 @@ function rBoard(){
       var drTag=ST.isDG&&c.dr&&c.dr!=='dg'?' <span style="font-size:8px;color:var(--tx3)">['+c.dr.toUpperCase()+']</span>':'';
       var comm=c.comm1||c.commercial||'';
       var sub=(comm?comm+' · ':'')+fd(c.createdAt);
+      var apportTag=ST.mod==='acquereurs'&&c.apport?'<div class="kb-name-sub" style="color:var(--ok);font-weight:700">'+fn(c.apport)+' €</div>':'';
       var pCol=c.priority==='h'?'#C0392B':c.priority==='m'?'var(--gold)':'var(--ok)';
       var row='<tr class="kb-tr"><td class="kb-td-name" onclick="oDP(\''+c.id+'\')">';
       row+='<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+pCol+';margin-right:5px;vertical-align:2px"></span>';
-      row+=c.name+drTag+'<div class="kb-name-sub">'+sub+'</div></td>';
+      row+=c.name+drTag+'<div class="kb-name-sub">'+sub+'</div>'+apportTag+'</td>';
       for(var si2=0;si2<steps.length;si2++){
         var isDone=done.indexOf(si2)>-1;
         var firstNotDone=steps.length;
@@ -516,7 +517,6 @@ function rBoard(){
         if(ST.mod==='acquereurs'){
           if(si2===1&&(sd['si_1']||'').trim())extra='<div class="kb-cell-info">📍 '+sd['si_1']+'</div>';
           if(si2===5&&sd.meunier&&(sd.montant||'').toString().trim())extra='<div class="kb-cell-info">💶 '+fn(sd.montant)+' €</div>';
-          if(si2===3&&c.apport)extra='<div class="kb-cell-info">'+fn(c.apport)+' €</div>';
         }
         if(ST.mod==='farine'){
           if(si2===0&&c.quintaux)extra='<div class="kb-cell-info">'+c.quintaux+' qtx</div>';
