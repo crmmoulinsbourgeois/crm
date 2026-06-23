@@ -87,6 +87,7 @@ body{font-family:'Lato',sans-serif;font-size:13px;color:var(--tx);background:var
 .kb-dot-done{background:var(--ok-lt);color:var(--ok);border:1.5px solid var(--ok)}
 .kb-dot-active{background:var(--bd);color:#fff;border:1.5px solid var(--bd-dk)}
 .kb-dot-todo{background:var(--cr-dk);color:var(--tx3);border:1.5px solid var(--brd)}
+.kb-cell-info{font-size:9px;color:var(--tx2);margin-top:3px;font-style:italic;line-height:1.2;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tg{padding:2px 7px;border-radius:99px;font-size:9px;font-weight:700}
 .ta{background:var(--ok-lt);color:var(--ok)}.tf{background:var(--gold-lt);color:#7A5A20}
 .tr{background:var(--bd-bg2);color:var(--bd)}.tm{background:#E6F1FB;color:#0C447C}
@@ -505,14 +506,26 @@ function rBoard(){
       row+=c.name+drTag+'<div class="kb-name-sub">'+sub+'</div></td>';
       for(var si2=0;si2<steps.length;si2++){
         var isDone=done.indexOf(si2)>-1;
-        var isCurrent=!isDone&&(si2===0||(done.indexOf(si2-1)>-1));
-        /* aussi considérer courant si c'est la première étape non faite */
         var firstNotDone=steps.length;
         for(var fx=0;fx<steps.length;fx++){if(done.indexOf(fx)===-1){firstNotDone=fx;break;}}
         isCurrent=(si2===firstNotDone);
         var cls=isDone?'kb-dot-done':isCurrent?'kb-dot-active':'kb-dot-todo';
         var ico=isDone?'<i class="ti ti-check" style="font-size:9px"></i>':isCurrent?'<i class="ti ti-arrow-right" style="font-size:9px"></i>':'';
-        row+='<td class="kb-td"><div class="kb-dot '+cls+'">'+ico+'</div></td>';
+        /* ─ Infos contextuelles par étape ─ */
+        var extra='';
+        if(ST.mod==='acquereurs'){
+          if(si2===1&&(sd['si_1']||'').trim())extra='<div class="kb-cell-info">📍 '+sd['si_1']+'</div>';
+          if(si2===5&&sd.meunier&&(sd.montant||'').toString().trim())extra='<div class="kb-cell-info">💶 '+fn(sd.montant)+' €</div>';
+          if(si2===3&&c.apport)extra='<div class="kb-cell-info">'+fn(c.apport)+' €</div>';
+        }
+        if(ST.mod==='farine'){
+          if(si2===0&&c.quintaux)extra='<div class="kb-cell-info">'+c.quintaux+' qtx</div>';
+          if(si2===2&&c.meunier)extra='<div class="kb-cell-info">'+c.meunier+'</div>';
+        }
+        if(ST.mod==='recouvrement'){
+          if(si2===0&&c.encours)extra='<div class="kb-cell-info" style="color:var(--bd)">'+fn(c.encours)+' €</div>';
+        }
+        row+='<td class="kb-td"><div class="kb-dot '+cls+'">'+ico+'</div>'+extra+'</td>';
       }
       row+='</tr>';
       tbody.innerHTML+=row;
