@@ -74,27 +74,19 @@ body{font-family:'Lato',sans-serif;font-size:13px;color:var(--tx);background:var
 .sb2{display:flex;gap:5px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .sc2{padding:3px 9px;border-radius:99px;border:1px solid var(--brd2);font-size:10px;cursor:pointer;color:var(--tx3);background:#fff}
 .sc2.active{background:var(--bd);border-color:var(--bd-dk);color:#fff;font-weight:700}
-.kb{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
-.kc{min-width:155px;flex:1;background:var(--cr-dk);border-radius:10px;padding:8px;border:1px solid var(--cr-brd)}
-.kch{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
-.kct{font-size:9px;font-weight:700;color:var(--bd);text-transform:uppercase;letter-spacing:.07em}
-.kcc{background:#fff;border:1px solid var(--brd);border-radius:99px;padding:1px 6px;font-size:9px;color:var(--tx3)}
-.kk{background:#fff;border:1px solid var(--brd);border-radius:6px;padding:9px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
-.kk:hover{border-color:var(--bd-mid)}
-.kk.past{background:var(--cr);border-style:dashed;opacity:.72}
-.kk.past:hover{opacity:1;border-color:var(--brd2)}
-.kkn{font-size:12px;font-weight:700;color:var(--tx)}
-.kk.past .kkn{color:var(--tx2);font-weight:600}
-.kkd{font-size:9px;color:var(--tx3);margin-top:1px}
-.kks{font-size:11px;color:var(--tx2);margin-top:2px}
-.kkv{font-size:10px;color:var(--bd);margin-top:3px;font-style:italic}
-.kk.past .kkv{color:var(--tx3)}
-.kkm{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;align-items:center}
-.kp{padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700}
-.pd{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
-.ph{background:#C0392B}.pm{background:var(--gold)}.pl{background:var(--ok)}
-.kk-badge{font-size:8px;color:var(--tx3);background:var(--cr-dk);border:1px solid var(--brd2);border-radius:99px;padding:1px 6px;display:inline-flex;align-items:center;gap:3px;margin-top:5px}
-.kk-dr{font-size:8px;color:var(--tx3);background:var(--cr-dk);border:1px solid var(--brd2);border-radius:99px;padding:1px 6px;display:inline-block;margin-top:3px}
+.kb{width:100%;overflow-x:auto;padding-bottom:6px}
+.kb table{width:100%;border-collapse:collapse;min-width:500px}
+.kb-th{font-size:9px;font-weight:700;color:var(--bd);text-transform:uppercase;letter-spacing:.07em;padding:5px 8px;background:var(--cr-dk);border:1px solid var(--cr-brd);text-align:center;white-space:nowrap}
+.kb-th.kb-th-name{text-align:left;min-width:160px;position:sticky;left:0;z-index:2;background:var(--cr-dk)}
+.kb-tr:hover .kb-td-name{background:var(--bd-bg)}
+.kb-td{padding:5px 6px;border:1px solid var(--cr-brd);text-align:center;vertical-align:middle;background:#fff}
+.kb-td-name{font-size:11px;font-weight:700;color:var(--tx);cursor:pointer;padding:6px 10px;border:1px solid var(--cr-brd);background:#fff;text-align:left;position:sticky;left:0;z-index:1;min-width:160px;max-width:200px}
+.kb-td-name:hover{color:var(--bd)}
+.kb-name-sub{font-size:9px;color:var(--tx3);font-weight:400;margin-top:1px}
+.kb-dot{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.kb-dot-done{background:var(--ok-lt);color:var(--ok);border:1.5px solid var(--ok)}
+.kb-dot-active{background:var(--bd);color:#fff;border:1.5px solid var(--bd-dk)}
+.kb-dot-todo{background:var(--cr-dk);color:var(--tx3);border:1.5px solid var(--brd)}
 .tg{padding:2px 7px;border-radius:99px;font-size:9px;font-weight:700}
 .ta{background:var(--ok-lt);color:var(--ok)}.tf{background:var(--gold-lt);color:#7A5A20}
 .tr{background:var(--bd-bg2);color:var(--bd)}.tm{background:#E6F1FB;color:#0C447C}
@@ -487,53 +479,86 @@ function gS(mod,card){
 function rBoard(){
   var board=document.getElementById('kanban');board.innerHTML='';
   var allCards=drf(DB[ST.mod].filter(function(c){return !c.archived;}));
+  if(ST.mod==='acquereurs'||ST.mod==='farine')allCards=sortC(allCards);
+  var steps=ST.mod==='management'?null:gS(ST.mod,null);
+  if(!allCards.length){board.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:30px">Aucune fiche en cours.<br>Cliquez sur "+ Nouvelle fiche" pour commencer.</div>';uStats();uBadges();return;}
   if(ST.mod==='management'){rBoardMgmt(board,allCards);return;}
-  var steps=gS(ST.mod,null);
-  for(var ci=0;ci<steps.length;ci++){
-    (function(ci,step){
-      var active=allCards.filter(function(c){return c.step===ci;});
-      var past=allCards.filter(function(c){return c.step>ci&&(c.stepsCompleted||[]).indexOf(ci)>-1;});
-      if(ST.mod==='acquereurs'||ST.mod==='farine'){active=sortC(active);past=sortC(past);}
-      var col=document.createElement('div');col.className='kc';
-      var h='<div class="kch"><div class="kct">'+step.n+'</div><div class="kcc">'+(active.length+past.length)+'</div></div>';
-      function rCard(c,isPast){
-        var sd=c.stepsData||{};
-        var sv=(ST.mod==='acquereurs'&&ci===1&&(sd['si_1']||''))?('<div class="kkv">📍 '+sd['si_1']+'</div>'):'';
-        var pills='';
-        if(!isPast){if(ST.mod==='farine'){if(c.meunier)pills+='<span class="kp" style="background:var(--gold-lt);color:#7A5A20">'+c.meunier+'</span>';if(c.quintaux)pills+='<span class="kp" style="background:var(--ok-lt);color:var(--ok)">'+c.quintaux+' qtx</span>';}if(ST.mod==='acquereurs'&&c.apport)pills+='<span class="kp" style="background:var(--ok-lt);color:var(--ok)">'+fn(c.apport)+' €</span>';if(ST.mod==='recouvrement'&&c.encours)pills+='<span class="kp" style="background:var(--bd-bg2);color:var(--bd)">'+fn(c.encours)+' €</span>';}
-        var meta=isPast?'<div class="kk-badge"><i class="ti ti-check" style="font-size:8px"></i> Étape validée</div>':('<div class="kkm"><span class="pd p'+c.priority+'"></span>'+pills+'</div>');
-        /* Si admin/DG : afficher la DR sur les cartes */
-        var drTag=ST.isDG&&c.dr&&c.dr!=='dg'?('<span class="kk-dr">'+c.dr.toUpperCase()+'</span>'):'';
-        return '<div class="kk'+(isPast?' past':'')+'" onclick="oDP(\''+c.id+'\')"><div class="kkn">'+c.name+'</div><div class="kkd">'+fd(c.createdAt)+'</div><div class="kks">'+(c.comm1||c.commercial||'')+'</div>'+sv+drTag+meta+'</div>';
+  /* ─ Tableau : 1 ligne par fiche ─ */
+  var wrap=document.createElement('div');wrap.className='kb';
+  var t=document.createElement('table');
+  /* En-tête */
+  var thead='<tr><th class="kb-th kb-th-name">Fiche</th>';
+  for(var si=0;si<steps.length;si++)thead+='<th class="kb-th">'+steps[si].n+'</th>';
+  thead+='</tr>';
+  t.innerHTML='<thead>'+thead+'</thead>';
+  var tbody=document.createElement('tbody');
+  for(var ci=0;ci<allCards.length;ci++){
+    (function(c){
+      var done=c.stepsCompleted||[];
+      var sd=c.stepsData||{};
+      var drTag=ST.isDG&&c.dr&&c.dr!=='dg'?' <span style="font-size:8px;color:var(--tx3)">['+c.dr.toUpperCase()+']</span>':'';
+      var comm=c.comm1||c.commercial||'';
+      var sub=(comm?comm+' · ':'')+fd(c.createdAt);
+      var pCol=c.priority==='h'?'#C0392B':c.priority==='m'?'var(--gold)':'var(--ok)';
+      var row='<tr class="kb-tr"><td class="kb-td-name" onclick="oDP(\''+c.id+'\')">';
+      row+='<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+pCol+';margin-right:5px;vertical-align:2px"></span>';
+      row+=c.name+drTag+'<div class="kb-name-sub">'+sub+'</div></td>';
+      for(var si2=0;si2<steps.length;si2++){
+        var isDone=done.indexOf(si2)>-1;
+        var isCurrent=!isDone&&(si2===0||(done.indexOf(si2-1)>-1));
+        /* aussi considérer courant si c'est la première étape non faite */
+        var firstNotDone=steps.length;
+        for(var fx=0;fx<steps.length;fx++){if(done.indexOf(fx)===-1){firstNotDone=fx;break;}}
+        isCurrent=(si2===firstNotDone);
+        var cls=isDone?'kb-dot-done':isCurrent?'kb-dot-active':'kb-dot-todo';
+        var ico=isDone?'<i class="ti ti-check" style="font-size:9px"></i>':isCurrent?'<i class="ti ti-arrow-right" style="font-size:9px"></i>':'';
+        row+='<td class="kb-td"><div class="kb-dot '+cls+'">'+ico+'</div></td>';
       }
-      for(var a=0;a<active.length;a++)h+=rCard(active[a],false);for(var p=0;p<past.length;p++)h+=rCard(past[p],true);
-      col.innerHTML=h;board.appendChild(col);
-    })(ci,steps[ci]);
+      row+='</tr>';
+      tbody.innerHTML+=row;
+    })(allCards[ci]);
   }
+  t.appendChild(tbody);wrap.appendChild(t);board.appendChild(wrap);
   uStats();uBadges();
 }
 function rBoardMgmt(board,allCards){
+  if(!allCards.length){board.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px">Aucune fiche Management.<br>Créez une fiche avec des étapes.</div>';uStats();uBadges();return;}
+  var wrap=document.createElement('div');wrap.className='kb';
+  var t=document.createElement('table');
+  /* Collecter toutes les étapes uniques dans l'ordre d'apparition */
   var allStepNames=[];
   for(var i=0;i<allCards.length;i++){var cs=allCards[i].customSteps||[];for(var j=0;j<cs.length;j++){if(allStepNames.indexOf(cs[j].name)===-1)allStepNames.push(cs[j].name);}}
-  if(!allStepNames.length){board.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px">Aucune fiche Management.<br>Créez une fiche avec des étapes.</div>';uStats();uBadges();return;}
-  for(var ci=0;ci<allStepNames.length;ci++){
-    (function(ci,sn){
-      function gi(c){var cs=c.customSteps||[];for(var k=0;k<cs.length;k++)if(cs[k].name===sn)return k;return -1;}
-      var active=allCards.filter(function(c){var idx=gi(c);return idx>-1&&c.step===idx;});
-      var past=allCards.filter(function(c){var idx=gi(c);return idx>-1&&c.step>idx&&(c.stepsCompleted||[]).indexOf(idx)>-1;});
-      var col=document.createElement('div');col.className='kc';
-      var h='<div class="kch"><div class="kct">'+sn+'</div><div class="kcc">'+(active.length+past.length)+'</div></div>';
-      function rMCard(c,isPast){
-        var idx=gi(c);var sd=c.stepsData||{};var cs=c.customSteps||[];
-        var fv=idx>-1&&cs[idx]&&cs[idx].fieldLabel&&(sd['mf_'+idx]||'').toString().trim()?('<div class="kkv">'+cs[idx].fieldLabel+' : '+sd['mf_'+idx]+'</div>'):'';
-        var drTag=ST.isDG&&c.dr&&c.dr!=='dg'?('<span class="kk-dr">'+c.dr.toUpperCase()+'</span>'):'';
-        var meta=isPast?'<div class="kk-badge"><i class="ti ti-check" style="font-size:8px"></i> Étape validée</div>':('<div class="kkm"><span class="pd p'+c.priority+'"></span></div>');
-        return '<div class="kk'+(isPast?' past':'')+'" onclick="oDP(\''+c.id+'\')"><div class="kkn">'+c.name+'</div><div class="kkd">'+fd(c.createdAt)+'</div>'+fv+drTag+meta+'</div>';
+  if(!allStepNames.length){board.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px">Aucune fiche avec étapes.</div>';uStats();uBadges();return;}
+  var thead='<tr><th class="kb-th kb-th-name">Commercial</th>';
+  for(var si=0;si<allStepNames.length;si++)thead+='<th class="kb-th">'+allStepNames[si]+'</th>';
+  thead+='</tr>';
+  t.innerHTML='<thead>'+thead+'</thead>';
+  var tbody=document.createElement('tbody');
+  for(var ci=0;ci<allCards.length;ci++){
+    (function(c){
+      var cs=c.customSteps||[];var done=c.stepsCompleted||[];
+      var drTag=ST.isDG&&c.dr&&c.dr!=='dg'?' <span style="font-size:8px;color:var(--tx3)">['+c.dr.toUpperCase()+']</span>':'';
+      var pCol=c.priority==='h'?'#C0392B':c.priority==='m'?'var(--gold)':'var(--ok)';
+      var row='<tr class="kb-tr"><td class="kb-td-name" onclick="oDP(\''+c.id+'\')">';
+      row+='<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+pCol+';margin-right:5px;vertical-align:2px"></span>';
+      row+=c.name+drTag+'<div class="kb-name-sub">'+fd(c.createdAt)+'</div></td>';
+      for(var si2=0;si2<allStepNames.length;si2++){
+        var sn=allStepNames[si2];
+        var idx=-1;for(var k=0;k<cs.length;k++){if(cs[k].name===sn){idx=k;break;}}
+        if(idx===-1){row+='<td class="kb-td" style="background:var(--cr-dk)"></td>';continue;}
+        var isDone=done.indexOf(idx)>-1;
+        var firstNotDone=cs.length;
+        for(var fx=0;fx<cs.length;fx++){if(done.indexOf(fx)===-1){firstNotDone=fx;break;}}
+        var isCurrent=(idx===firstNotDone);
+        var cls=isDone?'kb-dot-done':isCurrent?'kb-dot-active':'kb-dot-todo';
+        var ico=isDone?'<i class="ti ti-check" style="font-size:9px"></i>':isCurrent?'<i class="ti ti-arrow-right" style="font-size:9px"></i>':'';
+        row+='<td class="kb-td"><div class="kb-dot '+cls+'">'+ico+'</div></td>';
       }
-      for(var a=0;a<active.length;a++)h+=rMCard(active[a],false);for(var p=0;p<past.length;p++)h+=rMCard(past[p],true);
-      col.innerHTML=h;board.appendChild(col);
-    })(ci,allStepNames[ci]);
+      row+='</tr>';
+      tbody.innerHTML+=row;
+    })(allCards[ci]);
   }
+  t.appendChild(tbody);wrap.appendChild(t);board.appendChild(wrap);
   uStats();uBadges();
 }
 function uStats(){var all=drf(DB[ST.mod].filter(function(c){return !c.archived;}));var last=gS(ST.mod,null).length-1;document.getElementById('st-tot').textContent=all.length;document.getElementById('st-ec').textContent=all.filter(function(c){return c.step>0&&c.step<last;}).length;document.getElementById('st-hp').textContent=all.filter(function(c){return c.priority==='h';}).length;document.getElementById('st-fi').textContent=all.filter(function(c){return c.step===last;}).length;}
